@@ -1,25 +1,38 @@
 import pathlib
 import json
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 from google.adk.agents.llm_agent import ToolContext
 from docx import Document  # python-docx
 from ..sub_agents.doc_structure_planner.agent import DocStructure
 
 def create_docx_from_structure(
-    output_path: str = "diagnostic_report.docx",
-    language: str = "uk",
-    tool_context: ToolContext = None,
+    output_path: Optional[str] = None,
+    language: Optional[str] = None,
+    tool_context: Optional[ToolContext] = None,
 ) -> dict:
     """Create a .docx file from a DocStructure.
 
     Args:
-        output_path:   Destination file path (can be relative). Defaults to "diagnostic_report.docx".
-        language:      Document language code ('uk' for Ukrainian, 'ru' for Russian, 'en' for English). Defaults to "uk".
+        output_path:   Destination file path (can be relative). If not provided, will be retrieved from state or default to "diagnostic_report.docx".
+        language:      Document language code ('uk' for Ukrainian, 'ru' for Russian, 'en' for English). If not provided, will be retrieved from state or default to "uk".
         tool_context:  ADK tool context – used to store the generated path and retrieve doc_structure from state.
 
     Returns:
         dict with a ``status`` message.
     """
+    # Set defaults if not provided
+    if output_path is None:
+        output_path = "diagnostic_report.docx"
+    if language is None:
+        language = "uk"
+    
+    # Try to get output_path and language from state if available
+    if tool_context is not None:
+        if 'output_path' in tool_context.state:
+            output_path = tool_context.state['output_path']
+        if 'language' in tool_context.state:
+            language = tool_context.state['language']
+    
     # Try to get doc_structure from state first (most reliable source)
     doc_structure = None
     if tool_context is not None and 'doc_structure' in tool_context.state:

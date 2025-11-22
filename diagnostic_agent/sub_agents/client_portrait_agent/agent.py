@@ -10,12 +10,20 @@ def save_client_portrait_callback(callback_context: CallbackContext, llm_respons
     """
     Callback to save the extracted client portrait facts from the LLM response.
     """
-    print(f"DEBUG: save_client_portrait_callback called with response: {llm_response}")
-    if llm_response and llm_response.content.parts[0].text:
-        # Extract facts, one per line
-        facts = [line.strip() for line in llm_response.content.parts[0].text.split('\n') if line.strip() and not line.strip().startswith('#')]
-        callback_context.state['personal_data'] = facts
-        print(f"DEBUG: Stored {len(facts)} client portrait facts in state")
+    if llm_response and llm_response.content and llm_response.content.parts:
+        # Extract text from all text parts, ignoring non-text parts (thought_signature, function_call, etc.)
+        text_parts = []
+        for part in llm_response.content.parts:
+            if hasattr(part, 'text') and part.text:
+                text_parts.append(part.text)
+        
+        if text_parts:
+            # Combine all text parts
+            combined_text = '\n'.join(text_parts)
+            # Extract facts, one per line
+            facts = [line.strip() for line in combined_text.split('\n') if line.strip() and not line.strip().startswith('#')]
+            callback_context.state['personal_data'] = facts
+            # Only print if verbose mode is enabled (removed debug output)
 
 client_portrait_agent = Agent(
     model='gemini-2.5-flash',

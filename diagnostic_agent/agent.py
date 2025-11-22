@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from google.adk.agents.llm_agent import Agent
 from .tools.memory import suggest_document_structure
@@ -8,11 +9,23 @@ from google.adk.tools.agent_tool import AgentTool
 from .sub_agents.doc_structure_planner.agent import doc_structure_planner_agent
 from .tools.docx_creator import create_docx_from_structure
 
+# Load environment variables from .env file if available
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not installed, environment variables should be set manually
+    pass
 
 # Load instructions from instructions.md file
 _instructions_path = Path(__file__).parent / "instructions.md"
 with open(_instructions_path, "r", encoding="utf-8") as f:
     _agent_instructions = f.read()
+
+# ADK will automatically use environment variables:
+# - GEMINI_API_KEY for Google AI API
+# - GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION for Vertex AI
+# Make sure one of these is set in your .env file or environment
 
 root_agent = Agent(
     model='gemini-2.5-flash',

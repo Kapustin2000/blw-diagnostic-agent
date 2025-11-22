@@ -26,10 +26,21 @@ def save_doc_structure_callback(callback_context: CallbackContext, llm_response:
     """
     Callback to save the planned document structure from the LLM response.
     """
-    print(f"DEBUG: save_doc_structure_callback called with response: {llm_response}")
-    if llm_response and llm_response.content.parts:
+    if llm_response and llm_response.content and llm_response.content.parts:
         try:
-            text_response = llm_response.content.parts[0].text
+            # Extract text from all text parts, ignoring non-text parts (thought_signature, function_call, etc.)
+            text_parts = []
+            for part in llm_response.content.parts:
+                if hasattr(part, 'text') and part.text:
+                    text_parts.append(part.text)
+            
+            if not text_parts:
+                print("ERROR: No text parts found in response")
+                return
+            
+            # Combine all text parts
+            text_response = '\n'.join(text_parts)
+            
             # Clean up potential markdown code blocks
             if text_response.startswith("```json"):
                 text_response = text_response.replace("```json", "").replace("```", "").strip()
@@ -40,7 +51,7 @@ def save_doc_structure_callback(callback_context: CallbackContext, llm_response:
             # We can validate/parse it into the model to ensure it's correct, then dump it back or store as dict
             doc_structure = DocStructure(**structure_dict)
             callback_context.state['doc_structure'] = doc_structure.model_dump()
-            print(f"DEBUG: Stored doc_structure in state.")
+            # Only print if verbose mode is enabled (removed debug output)
         except Exception as e:
             print(f"ERROR: Failed to parse or save doc structure: {e}")
 
@@ -64,5 +75,7 @@ IMPORTANT GUIDELINES:
 
 The document should be comprehensive and tailored to the client's needs based on the facts.''',
     output_schema=DocStructure,
+    disallow_transfer_to_parent=True,
+    disallow_transfer_to_peers=True,
     after_model_callback=[save_doc_structure_callback]
 )

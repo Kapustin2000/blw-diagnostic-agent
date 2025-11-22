@@ -1,0 +1,15 @@
+# Core dependencies
+google-adk
+
+# Document generation
+python-docx
+
+# Speech-to-Text (Whisper)
+openai-whisper
+
+# Environment variables
+python-dotenv
+
+# Optional: for better audio processing
+# ffmpeg-python  # Requires ffmpeg to be installed separately
+

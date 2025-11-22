@@ -51,6 +51,25 @@ diagnostic_agent/IMG_4094_audio.txt
 *_audio.txt
 *_transcript.txt
 
+# Audio files in root directory
+*.mp3
+*.wav
+*.m4a
+*.aac
+*.ogg
+*.flac
+*.mp4
+*.m4v
+*.mov
+
+# Text files in root directory
+/*.txt
+!requirements.txt
+!README.md
+
+# Diagnostics output folder
+diagnostics/
+
 # Generated documents
 *.docx
 diagnostic_report*.docx
