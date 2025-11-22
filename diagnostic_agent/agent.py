@@ -1,4 +1,6 @@
 import os
+import warnings
+import logging
 from pathlib import Path
 from google.adk.agents.llm_agent import Agent
 from .tools.memory import suggest_document_structure
@@ -16,6 +18,16 @@ try:
 except ImportError:
     # dotenv not installed, environment variables should be set manually
     pass
+
+# Suppress warnings from Google ADK about non-text parts and API keys
+warnings.filterwarnings('ignore', message='.*non-text parts.*')
+warnings.filterwarnings('ignore', message='.*Both GOOGLE_API_KEY and GEMINI_API_KEY.*')
+warnings.filterwarnings('ignore', message='.*Default value is not supported.*')
+
+# Suppress logging from google libraries
+logging.getLogger('google').setLevel(logging.ERROR)
+logging.getLogger('google.genai').setLevel(logging.ERROR)
+logging.getLogger('google.adk').setLevel(logging.ERROR)
 
 # Load instructions from instructions.md file
 _instructions_path = Path(__file__).parent / "instructions.md"

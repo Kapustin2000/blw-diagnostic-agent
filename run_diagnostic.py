@@ -8,6 +8,8 @@ import uuid
 import asyncio
 import json
 import os
+import warnings
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
@@ -19,6 +21,17 @@ try:
 except ImportError:
     # dotenv not installed, try to load from environment directly
     pass
+
+# Suppress warnings from Google ADK about non-text parts and API keys
+# These are informational and don't affect functionality
+warnings.filterwarnings('ignore', message='.*non-text parts.*')
+warnings.filterwarnings('ignore', message='.*Both GOOGLE_API_KEY and GEMINI_API_KEY.*')
+warnings.filterwarnings('ignore', message='.*Default value is not supported.*')
+
+# Suppress logging from google libraries
+logging.getLogger('google').setLevel(logging.ERROR)
+logging.getLogger('google.genai').setLevel(logging.ERROR)
+logging.getLogger('google.adk').setLevel(logging.ERROR)
 
 # ANSI color codes for matrix-style terminal
 class Colors:
