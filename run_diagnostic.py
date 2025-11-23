@@ -181,17 +181,26 @@ def detect_language(text: str) -> str:
     """Detect language from text."""
     ukrainian_chars = set('іїєґІЇЄҐ')
     russian_chars = set('ыэъЫЭЪ')
+    spanish_chars = set('ñáéíóúüÑÁÉÍÓÚÜ')
     
     text_chars = set(text.lower())
     
     uk_count = len(text_chars & ukrainian_chars)
     ru_count = len(text_chars & russian_chars)
+    es_count = len(text_chars & spanish_chars)
     
-    if uk_count > ru_count and uk_count > 0:
+    if uk_count > ru_count and uk_count > es_count and uk_count > 0:
         return 'uk'
-    elif ru_count > uk_count and ru_count > 0:
+    elif ru_count > uk_count and ru_count > es_count and ru_count > 0:
         return 'ru'
+    elif es_count > uk_count and es_count > ru_count and es_count > 0:
+        return 'es'
     else:
+        # Check for common English words or default to Ukrainian
+        common_english = {'the', 'and', 'is', 'are', 'was', 'were', 'this', 'that', 'with', 'for'}
+        text_words = set(text.lower().split())
+        if len(text_words & common_english) > 5:
+            return 'en'
         return 'uk'  # default
 
 
@@ -354,7 +363,7 @@ def _print_event_progress(event):
                     print(f"{Colors.DARK_GREEN}   →{Colors.RESET} {Colors.GREEN}{combined_text[:100]}{Colors.RESET}")
 
 
-async def run_agent(transcript: str, identifier: str, output_dir: Path, initial_message: Optional[str] = None, structure_prompt: Optional[str] = None):
+async def run_agent(transcript: str, identifier: str, output_dir: Path, initial_message: Optional[str] = None, structure_prompt: Optional[str] = None, selected_language: Optional[str] = None):
     """Run the diagnostic agent with the given transcript."""
     print(f"\n{'='*60}")
     print(f"Starting diagnostic processing for: {identifier}")
@@ -369,9 +378,13 @@ async def run_agent(transcript: str, identifier: str, output_dir: Path, initial_
         f.write(transcript)
     print(f"✓ Transcript saved to: {transcript_path}")
     
-    # Detect language
-    language = detect_language(transcript)
-    print(f"✓ Detected language: {language}")
+    # Determine language: use selected language or auto-detect
+    if selected_language:
+        language = selected_language
+        print(f"✓ Using selected language: {Colors.BOLD}{language.upper()}{Colors.RESET}")
+    else:
+        language = detect_language(transcript)
+        print(f"✓ Auto-detected language: {Colors.BOLD}{language.upper()}{Colors.RESET}")
     
     # Prepare initial message with structure prompt if provided
     message_parts = []
@@ -624,8 +637,35 @@ def main():
     else:
         print_success("Structure prompt saved")
     
-    # Step 5: Optional additional message
-    print_section_header("Additional Instructions (Optional)", 5)
+    # Step 5: Document language selection
+    print_section_header("Document Language", 5)
+    print(f"{Colors.CYAN}1.{Colors.RESET} Ukrainian (українська)")
+    print(f"{Colors.CYAN}2.{Colors.RESET} Russian (русский)")
+    print(f"{Colors.CYAN}3.{Colors.RESET} English")
+    print(f"{Colors.CYAN}4.{Colors.RESET} Spanish (español)")
+    print(f"{Colors.CYAN}5.{Colors.RESET} Auto-detect from transcript")
+    
+    language_map = {
+        '1': 'uk',
+        '2': 'ru',
+        '3': 'en',
+        '4': 'es',
+        '5': None  # Will be auto-detected
+    }
+    
+    while True:
+        lang_choice = input(f"\n{Colors.GREEN}Select document language{Colors.RESET} {Colors.DIM}(1-5){Colors.RESET}: ").strip()
+        if lang_choice in language_map:
+            selected_language = language_map[lang_choice]
+            if selected_language:
+                print_success(f"Document language set to: {Colors.BOLD}{selected_language.upper()}{Colors.RESET}")
+            else:
+                print_success("Language will be auto-detected from transcript")
+            break
+        print_error("Invalid choice. Please enter 1, 2, 3, 4, or 5.")
+    
+    # Step 6: Optional additional message
+    print_section_header("Additional Instructions (Optional)", 6)
     additional_message = input(f"{Colors.GREEN}Enter any additional instructions for the agent{Colors.RESET} {Colors.DIM}(or press Enter to skip){Colors.RESET}: ").strip()
     
     if not additional_message:
@@ -634,12 +674,12 @@ def main():
     else:
         print_success("Additional instructions saved")
     
-    # Step 6: Output directory
-    print_section_header("Output Configuration", 6)
+    # Step 7: Output directory
+    print_section_header("Output Configuration", 7)
     output_dir = Path("diagnostics") / identifier
     print_success(f"Output directory: {Colors.BOLD}{output_dir}{Colors.RESET}")
     
-    # Step 7: Process input (transcribe if audio, read if transcript)
+    # Step 8: Process input (transcribe if audio, read if transcript)
     print_matrix_header("CONFIGURATION COMPLETE", 70)
     print_progress("Starting processing pipeline...")
     print()
@@ -648,7 +688,7 @@ def main():
     
     if is_audio:
         # Transcribe audio using Whisper
-        print_section_header("Transcribing Audio File", 7)
+        print_section_header("Transcribing Audio File", 8)
         try:
             transcript = read_audio_file(audio_path)
             print_success("Audio transcribed successfully!")
@@ -670,7 +710,7 @@ def main():
             sys.exit(1)
     else:
         # Read transcript
-        print_section_header("Reading Transcript", 6)
+        print_section_header("Reading Transcript", 8)
         if Path(transcript_input).exists():
             try:
                 transcript = read_transcript_file(transcript_input)
@@ -688,12 +728,12 @@ def main():
         print_error("Transcript is too short or empty.")
         sys.exit(1)
     
-    # Step 7: Run agent
+    # Step 9: Run agent
     print_matrix_header("RUNNING DIAGNOSTIC AGENT", 70)
     print()
     
     try:
-        asyncio.run(run_agent(transcript, identifier, output_dir, additional_message, structure_prompt))
+        asyncio.run(run_agent(transcript, identifier, output_dir, additional_message, structure_prompt, selected_language))
     except KeyboardInterrupt:
         print()
         print_warning("Process interrupted by user.")
