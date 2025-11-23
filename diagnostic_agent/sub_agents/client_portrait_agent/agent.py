@@ -20,9 +20,9 @@ def save_client_portrait_callback(callback_context: CallbackContext, llm_respons
         if text_parts:
             # Combine all text parts
             combined_text = '\n'.join(text_parts)
-            # Extract facts, one per line
+        # Extract facts, one per line
             facts = [line.strip() for line in combined_text.split('\n') if line.strip() and not line.strip().startswith('#')]
-            callback_context.state['personal_data'] = facts
+        callback_context.state['personal_data'] = facts
             # Only print if verbose mode is enabled (removed debug output)
 
 client_portrait_agent = Agent(

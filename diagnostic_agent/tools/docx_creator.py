@@ -86,60 +86,50 @@ def create_docx_from_structure(
         if sec.elements:
             for el in sec.elements:
                 if el.type == "p":
-                    doc.add_paragraph(el.content)
+                    doc.add_paragraph(el.content or "")
                 elif el.type == "ul":
-                    for line in el.content.split("\n"):
-                        if line.strip():
-                            doc.add_paragraph(line.strip(), style="List Bullet")
-                elif el.type == "li":
-                    doc.add_paragraph(el.content, style="List Number")
-                elif el.type == "table":
-                    # Enhanced markdown table parser
-                    rows = [r.strip() for r in el.content.strip().split("\n") if r.strip()]
-                    if rows:
-                        # Parse markdown table
-                        parsed_rows = []
-                        for row in rows:
-                            # Remove leading/trailing pipes and split
-                            cells = [c.strip() for c in row.strip("|").split("|")]
-                            parsed_rows.append(cells)
-                        
-                        if parsed_rows:
-                            # First row is header
-                            table = doc.add_table(rows=len(parsed_rows), cols=len(parsed_rows[0]))
-                            table.style = 'Light Grid Accent 1'  # Professional table style
-                            
-                            for i, row in enumerate(parsed_rows):
-                                for j, cell in enumerate(row):
-                                    if j < len(parsed_rows[0]):  # Ensure column index is valid
-                                        cell_paragraph = table.cell(i, j).paragraphs[0]
-                                        # Clear existing content
-                                        cell_paragraph.clear()
-                                        # Add cell text with bold formatting for header row
-                                        run = cell_paragraph.add_run(cell)
-                                        if i == 0:
-                                            run.bold = True
-                elif el.type in ["h1", "h2", "h3", "h4", "h5", "h6"]:
-                    level = int(el.type[1])
-                    add_heading(el.content, level=level)
-                else:
-                    doc.add_paragraph(el.content)
-        
-        # Process subsections if present (for backward compatibility)
-        if sec.subsections:
-            for sub in sec.subsections:
-                add_heading(sub.title, level=2)
-                for el in sub.elements:
-                    if el.type == "p":
-                        doc.add_paragraph(el.content)
-                    elif el.type == "ul":
+                    # Prefer structured list_items over markdown content
+                    if el.list_items:
+                        for item in el.list_items:
+                            doc.add_paragraph(item, style="List Bullet")
+                    elif el.content:
+                        # Fallback to markdown parsing for backward compatibility
                         for line in el.content.split("\n"):
                             if line.strip():
                                 doc.add_paragraph(line.strip(), style="List Bullet")
-                    elif el.type == "li":
-                        doc.add_paragraph(el.content, style="List Number")
-                    elif el.type == "table":
-                        # Enhanced markdown table parser
+                elif el.type == "ol":
+                    # Ordered list with structured list_items
+                    if el.list_items:
+                        for item in el.list_items:
+                            doc.add_paragraph(item, style="List Number")
+                    elif el.content:
+                        # Fallback to markdown parsing
+                        for line in el.content.split("\n"):
+                            if line.strip():
+                                doc.add_paragraph(line.strip(), style="List Number")
+                elif el.type == "li":
+                    # Single list item (backward compatibility)
+                    doc.add_paragraph(el.content or "", style="List Number")
+                elif el.type == "table":
+                    # Prefer structured table_data over markdown content
+                    if el.table_data and len(el.table_data) > 0:
+                        # Use structured table data
+                        num_rows = len(el.table_data)
+                        num_cols = max(len(row) for row in el.table_data) if el.table_data else 0
+                        if num_cols > 0:
+                            table = doc.add_table(rows=num_rows, cols=num_cols)
+                            table.style = 'Light Grid Accent 1'
+                            
+                            for i, row in enumerate(el.table_data):
+                                for j, cell in enumerate(row):
+                                    if j < num_cols:
+                                        cell_paragraph = table.cell(i, j).paragraphs[0]
+                                        cell_paragraph.clear()
+                                        run = cell_paragraph.add_run(cell)
+                                        if i == 0:  # Header row
+                                            run.bold = True
+                    elif el.content:
+                        # Fallback to markdown table parser for backward compatibility
                         rows = [r.strip() for r in el.content.strip().split("\n") if r.strip()]
                         if rows:
                             parsed_rows = []
@@ -159,11 +149,93 @@ def create_docx_from_structure(
                                             run = cell_paragraph.add_run(cell)
                                             if i == 0:
                                                 run.bold = True
+                elif el.type == "quote":
+                    # Blockquote style
+                    if el.quote_text:
+                        paragraph = doc.add_paragraph(el.quote_text)
+                        paragraph.style = 'Quote'
+                    elif el.content:
+                        paragraph = doc.add_paragraph(el.content)
+                        paragraph.style = 'Quote'
+                elif el.type in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+                    level = int(el.type[1])
+                    add_heading(el.content or "", level=level)
+                else:
+                    doc.add_paragraph(el.content or "")
+        
+        # Process subsections if present (for backward compatibility)
+        if sec.subsections:
+            for sub in sec.subsections:
+                add_heading(sub.title, level=2)
+                for el in sub.elements:
+                    if el.type == "p":
+                        doc.add_paragraph(el.content or "")
+                    elif el.type == "ul":
+                        if el.list_items:
+                            for item in el.list_items:
+                                doc.add_paragraph(item, style="List Bullet")
+                        elif el.content:
+                            for line in el.content.split("\n"):
+                                if line.strip():
+                                    doc.add_paragraph(line.strip(), style="List Bullet")
+                    elif el.type == "ol":
+                        if el.list_items:
+                            for item in el.list_items:
+                                doc.add_paragraph(item, style="List Number")
+                        elif el.content:
+                            for line in el.content.split("\n"):
+                                if line.strip():
+                                    doc.add_paragraph(line.strip(), style="List Number")
+                    elif el.type == "li":
+                        doc.add_paragraph(el.content or "", style="List Number")
+                    elif el.type == "table":
+                        if el.table_data and len(el.table_data) > 0:
+                            num_rows = len(el.table_data)
+                            num_cols = max(len(row) for row in el.table_data) if el.table_data else 0
+                            if num_cols > 0:
+                                table = doc.add_table(rows=num_rows, cols=num_cols)
+                                table.style = 'Light Grid Accent 1'
+                                
+                                for i, row in enumerate(el.table_data):
+                                    for j, cell in enumerate(row):
+                                        if j < num_cols:
+                                            cell_paragraph = table.cell(i, j).paragraphs[0]
+                                            cell_paragraph.clear()
+                                            run = cell_paragraph.add_run(cell)
+                                            if i == 0:
+                                                run.bold = True
+                        elif el.content:
+                            rows = [r.strip() for r in el.content.strip().split("\n") if r.strip()]
+                            if rows:
+                                parsed_rows = []
+                                for row in rows:
+                                    cells = [c.strip() for c in row.strip("|").split("|")]
+                                    parsed_rows.append(cells)
+                                
+                                if parsed_rows:
+                                    table = doc.add_table(rows=len(parsed_rows), cols=len(parsed_rows[0]))
+                                    table.style = 'Light Grid Accent 1'
+                                    
+                                    for i, row in enumerate(parsed_rows):
+                                        for j, cell in enumerate(row):
+                                            if j < len(parsed_rows[0]):
+                                                cell_paragraph = table.cell(i, j).paragraphs[0]
+                                                cell_paragraph.clear()
+                                                run = cell_paragraph.add_run(cell)
+                                                if i == 0:
+                                                    run.bold = True
+                    elif el.type == "quote":
+                        if el.quote_text:
+                            paragraph = doc.add_paragraph(el.quote_text)
+                            paragraph.style = 'Quote'
+                        elif el.content:
+                            paragraph = doc.add_paragraph(el.content)
+                            paragraph.style = 'Quote'
                     elif el.type in ["h1", "h2", "h3", "h4", "h5", "h6"]:
                         level = int(el.type[1])
-                        add_heading(el.content, level=level)
+                        add_heading(el.content or "", level=level)
                     else:
-                        doc.add_paragraph(el.content)
+                        doc.add_paragraph(el.content or "")
         
         # Add conclusion if present
         if sec.conclusion:

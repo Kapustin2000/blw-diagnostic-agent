@@ -5,8 +5,26 @@ from typing import List, Optional, Literal
 import json
 
 class DocElement(BaseModel):
-    type: Literal['p', 'ul', 'li', 'table', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] = Field(description="The type of the HTML element.")
-    content: str = Field(description="The content of the element. For tables, this should be a markdown table string.")
+    type: Literal['p', 'ul', 'ol', 'li', 'table', 'quote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'] = Field(
+        description="The type of the HTML element. Use 'ul' for unordered lists, 'ol' for ordered lists, 'table' for tables, 'quote' for blockquotes."
+    )
+    content: Optional[str] = Field(
+        default=None,
+        description="Plain text content for paragraphs, headings, or markdown table string (for backward compatibility). For structured elements, prefer using the specific fields below."
+    )
+    # Structured data fields (preferred over markdown strings)
+    table_data: Optional[List[List[str]]] = Field(
+        default=None,
+        description="For table type: array of rows, each row is an array of cell strings. First row should be headers. Example: [['Header1', 'Header2'], ['Cell1', 'Cell2']]"
+    )
+    list_items: Optional[List[str]] = Field(
+        default=None,
+        description="For ul/ol types: array of list item strings. Example: ['Item 1', 'Item 2', 'Item 3']"
+    )
+    quote_text: Optional[str] = Field(
+        default=None,
+        description="For quote type: the quoted text content."
+    )
 
 class Subsection(BaseModel):
     title: str = Field(description="The title of the subsection.")
@@ -64,10 +82,15 @@ doc_structure_planner_agent = Agent(
 IMPORTANT GUIDELINES:
 - Prefer placing elements directly in sections rather than using subsections
 - Use tables extensively for structured data: personal info, medical history, test results, physical assessment findings, recommendations
-- Tables should be formatted as markdown tables with headers
+- For tables: prefer using table_data field (array of rows, each row is array of cells) instead of markdown strings
+  Example: {"type": "table", "table_data": [["Header1", "Header2"], ["Cell1", "Cell2"]]}
+- For lists: use list_items field (array of strings) for ul/ol types
+  Example: {"type": "ul", "list_items": ["Item 1", "Item 2"]}
+- For quotes: use quote_text field
+  Example: {"type": "quote", "quote_text": "Important observation..."}
 - Only use subsections when absolutely necessary for complex hierarchical organization
 - Each section should have a clear title and can include description/conclusion if needed
-- Use paragraph elements for narrative text, tables for structured data, lists for bullet points
+- Use paragraph elements for narrative text, tables for structured data, lists for bullet points, quotes for important observations
 
 <personal_data>
 {personal_data}

@@ -321,7 +321,7 @@ def _print_event_progress(event):
                     print(f"{Colors.DARK_GREEN}   →{Colors.RESET} {Colors.GREEN}{combined_text[:100]}{Colors.RESET}")
 
 
-async def run_agent(transcript: str, identifier: str, output_dir: Path, initial_message: Optional[str] = None):
+async def run_agent(transcript: str, identifier: str, output_dir: Path, initial_message: Optional[str] = None, structure_prompt: Optional[str] = None):
     """Run the diagnostic agent with the given transcript."""
     print(f"\n{'='*60}")
     print(f"Starting diagnostic processing for: {identifier}")
@@ -340,11 +340,18 @@ async def run_agent(transcript: str, identifier: str, output_dir: Path, initial_
     language = detect_language(transcript)
     print(f"✓ Detected language: {language}")
     
-    # Prepare initial message
+    # Prepare initial message with structure prompt if provided
+    message_parts = []
+    
+    if structure_prompt:
+        message_parts.append(f"DOCUMENT STRUCTURE REQUIREMENTS:\n{structure_prompt}\n")
+    
     if initial_message:
-        user_message = f"{initial_message}\n\nPlease analyze this diagnostic transcript:\n\n{transcript}"
-    else:
-        user_message = f"Please analyze this diagnostic transcript and create a comprehensive diagnostic report:\n\n{transcript}"
+        message_parts.append(initial_message)
+    
+    message_parts.append(f"\nPlease analyze this diagnostic transcript and create a comprehensive diagnostic report following the structure requirements above:\n\n{transcript}")
+    
+    user_message = "\n".join(message_parts)
     
     # Set output path for document in absolute path
     output_docx = output_dir.absolute() / f"diagnostic_report_{identifier}.docx"
@@ -571,8 +578,21 @@ def main():
         
         print_success("Transcript source selected")
     
-    # Step 4: Optional message
-    print_section_header("Additional Instructions (Optional)", 4)
+    # Step 4: Document structure prompt (optional)
+    print_section_header("Document Structure Prompt (Optional)", 4)
+    print_info("Enter a short paragraph describing the desired document structure.")
+    print_info("Example: 'Create a diagnostic report with sections: Personal data and anamnesis, Medical history, Sports history, Postural assessment, Visual assessment, Respiratory assessment. Use tables extensively for structured data.'")
+    print()
+    structure_prompt = input(f"{Colors.GREEN}Enter structure prompt{Colors.RESET} {Colors.DIM}(or press Enter to use default){Colors.RESET}: ").strip()
+    
+    if not structure_prompt:
+        structure_prompt = None
+        print_info("Using default document structure")
+    else:
+        print_success("Structure prompt saved")
+    
+    # Step 5: Optional additional message
+    print_section_header("Additional Instructions (Optional)", 5)
     additional_message = input(f"{Colors.GREEN}Enter any additional instructions for the agent{Colors.RESET} {Colors.DIM}(or press Enter to skip){Colors.RESET}: ").strip()
     
     if not additional_message:
@@ -581,12 +601,12 @@ def main():
     else:
         print_success("Additional instructions saved")
     
-    # Step 5: Output directory
-    print_section_header("Output Configuration", 5)
+    # Step 6: Output directory
+    print_section_header("Output Configuration", 6)
     output_dir = Path("diagnostics") / identifier
     print_success(f"Output directory: {Colors.BOLD}{output_dir}{Colors.RESET}")
     
-    # Step 6: Process input (transcribe if audio, read if transcript)
+    # Step 7: Process input (transcribe if audio, read if transcript)
     print_matrix_header("CONFIGURATION COMPLETE", 70)
     print_progress("Starting processing pipeline...")
     print()
@@ -595,7 +615,7 @@ def main():
     
     if is_audio:
         # Transcribe audio using Whisper
-        print_section_header("Transcribing Audio File", 6)
+        print_section_header("Transcribing Audio File", 7)
         try:
             transcript = read_audio_file(audio_path)
             print_success("Audio transcribed successfully!")
@@ -640,7 +660,7 @@ def main():
     print()
     
     try:
-        asyncio.run(run_agent(transcript, identifier, output_dir, additional_message))
+        asyncio.run(run_agent(transcript, identifier, output_dir, additional_message, structure_prompt))
     except KeyboardInterrupt:
         print()
         print_warning("Process interrupted by user.")
