@@ -6,6 +6,15 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Change to script directory
 cd "$SCRIPT_DIR"
 
+# Activate virtual environment if it exists
+if [ -d "venv" ]; then
+    echo "✓ Activating virtual environment..."
+    source venv/bin/activate
+elif [ -d ".venv" ]; then
+    echo "✓ Activating virtual environment (.venv)..."
+    source .venv/bin/activate
+fi
+
 # Check if Python is available
 if ! command -v python3 &> /dev/null; then
     echo "❌ Error: python3 is not installed or not in PATH"

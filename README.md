@@ -44,15 +44,32 @@ This agent eliminates manual work by automating the complete workflow from raw c
    cd diagnostic_agent
    ```
 
-2. **Install dependencies**:
+2. **Create a virtual environment** (recommended):
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On macOS/Linux
+   # or
+   venv\Scripts\activate  # On Windows
+   ```
+
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-
-3. **Install Whisper** (for STT functionality):
+   
+   **Important**: Make sure you're using the correct Python environment. If using `python3` directly:
    ```bash
-   pip install openai-whisper
+   python3 -m pip install -r requirements.txt
    ```
+
+4. **Verify installation**:
+   ```bash
+   python3 -c "import google.adk; print('✓ google-adk installed')"
+   ```
+   
+   If you see an error, ensure you're installing in the correct Python environment.
+
+**Note**: The `run_diagnostic.command` script automatically activates a virtual environment if `venv` or `.venv` directory exists in the project root.
 
 4. **Set up environment variables**:
    Create a `.env` file in the project root:
@@ -188,19 +205,52 @@ The system uses `gemini-2.5-flash` by default. You can modify this in:
 
 ### Common Issues
 
-1. **"No API credentials found"**
+1. **`ModuleNotFoundError: No module named 'google'`**
+   - **Solution**: Install dependencies using the correct Python interpreter:
+     ```bash
+     python3 -m pip install -r requirements.txt
+     ```
+   - If using a virtual environment, make sure it's activated:
+     ```bash
+     source venv/bin/activate  # On macOS/Linux
+     # or
+     venv\Scripts\activate  # On Windows
+     ```
+   - Verify installation:
+     ```bash
+     python3 -c "import google.adk; print('✓ Dependencies installed correctly')"
+     ```
+   - If the error persists, check which Python is being used:
+     ```bash
+     which python3  # macOS/Linux
+     # or
+     where python3  # Windows
+     ```
+
+2. **"No API credentials found"**
    - Ensure `.env` file exists with `GEMINI_API_KEY` or `GOOGLE_CLOUD_PROJECT`
    - Check that environment variables are loaded correctly
+   - Verify `.env` file is in the project root directory
 
-2. **"Whisper STT is not available"**
-   - Install Whisper: `pip install openai-whisper`
-   - Ensure FFmpeg is installed for audio processing
+3. **"Whisper STT is not available"**
+   - Install Whisper: `pip install openai-whisper` or `python3 -m pip install openai-whisper`
+   - Ensure FFmpeg is installed for audio processing:
+     ```bash
+     # macOS
+     brew install ffmpeg
+     
+     # Ubuntu/Debian
+     sudo apt-get install ffmpeg
+     
+     # Windows
+     # Download from https://ffmpeg.org/download.html
+     ```
 
-3. **"Both GOOGLE_API_KEY and GEMINI_API_KEY are set"**
+4. **"Both GOOGLE_API_KEY and GEMINI_API_KEY are set"**
    - Remove one of the keys from `.env` to avoid confusion
    - The system will use `GOOGLE_API_KEY` if both are present
 
-4. **Document generation fails**
+5. **Document generation fails**
    - Check that `doc_structure` exists in agent state
    - Verify that `doc_structure_planner_agent` completed successfully
    - Review `state.json` in output directory for debugging

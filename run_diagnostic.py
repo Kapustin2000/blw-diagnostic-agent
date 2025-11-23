@@ -14,6 +14,39 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
+# Check critical dependencies before importing project modules
+def check_dependencies():
+    """Check if required dependencies are installed."""
+    missing_deps = []
+    
+    try:
+        import google.adk
+    except ImportError:
+        missing_deps.append("google-adk")
+    
+    try:
+        import docx
+    except ImportError:
+        missing_deps.append("python-docx")
+    
+    try:
+        import dotenv
+    except ImportError:
+        missing_deps.append("python-dotenv")
+    
+    if missing_deps:
+        print("❌ Error: Missing required dependencies!")
+        print(f"\nMissing packages: {', '.join(missing_deps)}")
+        print("\nPlease install dependencies by running:")
+        print("  python3 -m pip install -r requirements.txt")
+        print("\nOr install individually:")
+        for dep in missing_deps:
+            print(f"  python3 -m pip install {dep}")
+        sys.exit(1)
+
+# Check dependencies before proceeding
+check_dependencies()
+
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
